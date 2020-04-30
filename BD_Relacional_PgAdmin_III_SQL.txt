@@ -64,7 +64,7 @@ FOR EACH ROW EXECUTE PROCEDURE funcion_saca_venta ();
 
 
 
-// creación de la base de datos ferreteria
+// creaciÃ³n de la base de datos ferreteria
 create table clientes ( 
 cli_cod varchar (30) not null,
 cli_nom varchar (20) not null,
