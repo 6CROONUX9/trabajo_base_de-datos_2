@@ -1,5 +1,10 @@
-//creacion de la base de datos ferreteri//
+//creacion de la base de datos ferreteria//
 ///////////////////////////////////////
+
+use ferreteria;
+
+//creacion de los documentos que tendran la informacion//
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 use ferreteri;
 
@@ -66,13 +71,13 @@ async function main() {
     try {
         //conexion  al cluster de mongoDB
         await client.connect();
-       //introducción de datos
+       //introducciÃ³n de datos
        const result0 = await client.db("ferreteria").collection("cliente").updateOne({ "cli_nom" : "Luz F" });
        console.log(`${result.matchedCount} document(s) matched the query criteria.`);
         
        const result1 = await client.db("ferreteria").collection("provedor").insertOne({ "fac_nom" : "ingenierias" });
        console.log(`New listing created with the following id: ${result.insertedId}`);
-       //liquidación de datos 
+       //liquidaciÃ³n de datos 
        const result2 = await client.db("ferreteria").collection("tipo").deleteOne({ "mat_id" : "00"  });
         
     } finally {
