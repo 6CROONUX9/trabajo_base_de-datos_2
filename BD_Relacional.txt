@@ -1,0 +1,218 @@
+//////////////////////////////////////////////////
+disparador que dicta inspeccion a las entradas  //
+//////////////////////////////////////////////////
+CREATE OR REPLACE FUNCTION CONTROL_INSPECCION() RETURNS TRIGGER AS 
+$$
+	begin
+		IF (TG_OP = 'DELETE' ) THEN 
+			INSERT INTO TABLA_INSPECCION ( "nombre_tabla", "operacion", "v_anterior", "v_nuevo", "fecha_modificacion", "usuario" )
+			VALUES (TG_TABLE_NAME, 'D', OLD, '', current_date, USER);
+			RETURN OLD;
+		ELSIF (TG_OP = 'UPDATE' ) THEN 
+			INSERT INTO TABLA_INSPECCION ( "nombre_tabla", "operacion", "v_anterior", "v_nuevo", "fecha_modificacion", "usuario" )
+			VALUES (TG_TABLE_NAME, 'U', OLD, NEW, current_date, USER);
+			RETURN NEW;
+		ELSIF (TG_OP = 'INSERT' ) THEN 
+			INSERT INTO TABLA_INSPECCION ( "nombre_tabla", "operacion", "v_anterior", "v_nuevo", "fecha_modificacion", "usuario" )
+			VALUES (TG_TABLE_NAME, 'I', '', NEW, current_date, USER);
+			RETURN NEW;
+		END IF;
+		RETURN NULL;
+end
+$$
+LANGUAGE 'plpgsql' VOLATILE COST 100;
+ALTER FUNCTION CONTROL_INSPECCION() OWNER TO postgres;
+
+///////////////////////////////////////////////////////////
+//              ejecucion TRIGGER_CONTROL                //
+///////////////////////////////////////////////////////////
+
+CREATE TRIGGER CONTROL_INSPECCION AFTER INSERT OR DELETE OR UPDATE
+ON 
+clientes FOR EACH ROW EXECUTE PROCEDURE CONTROL_INSPECCION();
+
+CREATE TRIGGER CONTROL_INSPECCION BEFORE INSERT OR DELETE OR UPDATE
+ON 
+venta FOR EACH ROW EXECUTE PROCEDURE funcion_saca_venta()
+
+CREATE TRIGGER CONTROL_INSPECCIONP AFTER INSERT OR DELETE OR UPDATE
+ON 
+provedor FOR EACH ROW EXECUTE PROCEDURE CONTROL_INSPECCION();
+
+///////////////////////////////////////////////////////////
+//              Disparador para sacar fecha de venta     //
+///////////////////////////////////////////////////////////
+
+CREATE OR REPLACE FUNCTION funcion_saca_venta() RETURNS TRIGGER AS
+$$
+DECLARE venta date;
+BEGIN
+	venta := age(CURRENT_DATE, new.ven_fec);
+	RAISE NOTICE 'venta : %', venta;
+	RAISE NOTICE '32131231321321';
+	insert into venta (ven_cod,ven_fec,ven_pag,ven_des,cli_cod) 
+	values ('00','06-04-2020', '5000' , 'codos 1/2', '4');
+	RETURN NEW;
+END; 
+$$
+LANGUAGE 'plpgsql';
+ALTER FUNCTION funcion_saca_venta() OWNER TO postgres;
+
+CREATE TRIGGER trigger_saca_venta_1 AFTER INSERT 
+ON venta
+FOR EACH ROW EXECUTE PROCEDURE funcion_saca_venta ();
+
+
+
+// creación de la base de datos ferreteria
+create table clientes ( 
+cli_cod varchar (30) not null,
+cli_nom varchar (20) not null,
+cli_app varchar (20) not null,
+cli_ced varchar (20) not null,
+cli_dir varchar (20) not null,
+cli_tee varchar (20) not null,
+
+unique (cli_ced),
+primary key ( cli_cod )
+);
+
+
+ create table venta (
+ ven_cod varchar (30) not null,
+ ven_fec date ,
+ ven_pag float4 default 0.0 not null,
+ ven_des varchar (50) not null,
+ cli_cod varchar (30),
+
+
+ primary key ( ven_cod ),
+ foreign key (cli_cod ) references clientes(cli_cod) on update cascade on delete restrict
+
+ );
+
+ create table pago (
+pag_cod varchar (30) not null,
+pag_val float4 default 0.0 not null,
+pag_des varchar (50),
+ven_cod varchar (30),
+primary key ( pag_cod ),
+foreign key (ven_cod ) references venta(ven_cod) on update cascade on delete restrict
+);
+
+ create table provedor (
+ pro_cod varchar (30) not null,
+ pro_nom varchar (20) not null,
+ pro_des varchar (50),
+
+ primary key ( pro_cod )
+ );
+ 
+ create table mat_prima (
+ mat_cod varchar (30) not null,
+ mat_nom varchar (20) not null,
+ mad_des varchar (50),
+ mat_fec date,
+ pro_cod varchar (30),
+
+ primary key ( mat_cod ),
+ foreign key (pro_cod) references provedor(pro_cod) on update cascade on delete restrict
+ );
+ 
+ create table tipo (
+ tip_cod serial,
+ tip_nom varchar (20) not null,
+ tip_des varchar (50),
+
+ primary key ( tip_cod )
+ );
+ 
+ create table producto (
+ prt_cod varchar (30) not null,
+ prt_nom varchar (20) not null,
+ prt_fec date,
+ prt_des varchar (50),
+ prt_pre float4 not null,
+ tip_cod serial not null,
+
+ primary key (prt_cod),
+ check (prt_pre >= 0),
+ foreign key (tip_cod) references tipo(tip_cod) on update cascade on delete restrict
+ );
+ 
+create table proxmat (
+ pxm_proid varchar (30),
+ pxm_matid varchar (30),
+ primary key (pxm_proid, pxm_matid),
+ foreign key (pxm_proid) references producto(prt_cod) on update cascade on delete restrict,
+ foreign key (pxm_matid) references mat_prima(mat_cod) on update cascade on delete restrict
+ 
+);
+
+create table pagxpro (
+ pxp_pagid varchar (30),
+ pxp_proid varchar (30),
+ primary key (pxp_pagid,pxp_proid),
+ foreign key (pxp_pagid) references pago(pag_cod) on update cascade on delete restrict,
+ foreign key (pxp_proid) references producto(prt_cod) on update cascade on delete restrict
+ );
+
+////////////////////////////////////////////////////
+// Creaciion de la tabla de INSPECCION           //
+//////////////////////////////////////////////////
+
+CREATE TABLE TABLA_INSPECCION (
+	id_inspeccion serial not null,
+	nombre_tabla varchar(255) not null,
+	operacion varchar(2) not null,
+	v_anterior text not null,
+	v_nuevo text not null,
+	fecha_modificacion timestamp without time zone not null,
+	usuario varchar (50) not null,
+	constraint id_inspeccion primary key (id_inspeccion)
+)
+WITH (OIDS=FALSE);
+
+////////////////////////////////////////////////////
+// Inserciones                                   //
+//////////////////////////////////////////////////
+
+insert into clientes (cli_cod,cli_nom,cli_app,cli_ced,cli_dir,cli_tee) values ('1','pedro','silva','2346857910','santamaria','3468521761');
+insert into clientes (cli_cod,cli_nom,cli_app,cli_ced,cli_dir,cli_tee) values ('2','marco','patas','5676857635','gibraltar','32686561734');
+insert into clientes (cli_cod,cli_nom,cli_app,cli_ced,cli_dir,cli_tee) values ('3','luz','parra','53746816','la_China','31686561357');
+
+insert into venta (ven_cod,ven_fec,ven_pag,ven_des,cli_cod)  values (0,'05-04-2020', '5000' , 'codos 1/2', '1');
+insert into venta (ven_cod,ven_fec,ven_pag,ven_des,cli_cod)  values (01,'25-04-2020', '1000' , 'uniones 1/2', '2');
+insert into venta (ven_cod,ven_fec,ven_pag,ven_des,cli_cod)  values (02,'27-04-2020', '19000' , 'cloro 1L', '3');
+
+insert into venta (ven_cod,ven_fec,ven_pag,ven_des,cli_cod)  values (03,'28-04-2020', '1000' , 'tuerca' , '2');
+
+
+
+insert into pago (pag_cod,pag_val,pag_des,ven_cod) values ('01','2.0','0',02);
+insert into pago (pag_cod,pag_val,pag_des,ven_cod) values ('02','2.5','0',0);
+insert into pago (pag_cod,pag_val,pag_des,ven_cod) values ('03','3.0','0',01);
+
+insert into provedor(pro_cod,pro_nom,pro_des) values ('01','QUIMICACOSMOS','0');
+insert into provedor(pro_cod,pro_nom,pro_des) values ('02','TEXCOMERCIAL S.A.S','0');
+insert into provedor(pro_cod,pro_nom,pro_des) values ('03','INDURRUEDAS LTDA','0');
+
+insert into mat_prima (mat_cod,mat_nom) values ('1','mat 1');
+insert into mat_prima (mat_cod,mat_nom) values ('2','mat 3');
+insert into mat_prima (mat_cod,mat_nom) values ('3','mat 2');
+
+insert into tipo (tip_nom) values ('N1');
+insert into tipo (tip_nom) values ('N2');
+insert into tipo (tip_nom) values ('N3');
+
+insert into producto (prt_cod,prt_nom,prt_pre,tip_cod) values ('p1','cemento','25',1);
+insert into producto (prt_cod,prt_nom,prt_pre,tip_cod) values ('p2','pintura 1/4','15',2);
+insert into producto (prt_cod,prt_nom,prt_pre,tip_cod) values ('p3','covi pvc','19',1);
+
+insert into proxmat(pxm_proid, pxm_matid) values ('p1','1');
+insert into proxmat(pxm_proid, pxm_matid) values ('p2','2');
+insert into proxmat(pxm_proid, pxm_matid) values ('p3','3');
+
+insert into pagxpro(pxp_pagid,pxp_proid) values ('01','p2');
+insert into pagxpro(pxp_pagid,pxp_proid) values ('03','p3');
+insert into pagxpro(pxp_pagid,pxp_proid) values ('02','p1');
