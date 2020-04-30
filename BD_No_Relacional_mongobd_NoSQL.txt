@@ -1,0 +1,108 @@
+//creacion de la base de datos ferreteri//
+///////////////////////////////////////
+
+use ferreteri;
+
+//creacion de los documentos que tendran la informacion//
+////////////////////////////////////////////////////////
+
+
+
+db.ferreteria.save({ "provedor": {
+"doc_id": "",
+"pro_cod": "",
+"pro_nom": "",
+"pro_des": ""
+} 
+} );
+
+db.ferreteria.save({ "tipo": {
+tip_cod": "",
+"tip_nom": "",
+"tip_des": "",
+}
+} );
+
+db.ferreteria.save({ "cliente": {
+"cli_cod": "",
+"cli_nom":"",
+"cli_app":"",
+"cli_ced":"",
+"cli_dir":"",
+"cli_tee":""
+}
+} );
+
+db.ferreteria.save({ "venta": {
+"ven_cod": "",
+"ven_fec": "",
+"ven_pag": "",
+"ven_des": "",
+"cli_cod": "",
+"cli_nom":"",
+"cli_app":"",
+"cli_ced":"",
+"cli_dir":"",
+"cli_tee":""
+} 
+} );
+
+// comando con el cual mongoDB tiene la inspeccion sobre una base de datos utlizaldo node.js//
+////////////////////////////////////////////////////////////////////////////////////////////
+const { MongoClient } = require('mongodb');
+const stream = require('stream');
+
+async function main() {
+    /**
+     * 
+     * 
+     */
+    const uri = "mongodb+srv://<username>:<password>@<your-cluster-url>/test?retryWrites=true&w=majority";
+    //metodo de seguimiento// activacion
+    await monitorListingsUsingStreamAPI(client);
+
+    const client = new MongoClient(uri);
+
+    try {
+        //conexion  al cluster de mongoDB
+        await client.connect();
+       //introducción de datos
+       const result0 = await client.db("ferreteria").collection("cliente").updateOne({ "cli_nom" : "Luz F" });
+       console.log(`${result.matchedCount} document(s) matched the query criteria.`);
+        
+       const result1 = await client.db("ferreteria").collection("provedor").insertOne({ "fac_nom" : "ingenierias" });
+       console.log(`New listing created with the following id: ${result.insertedId}`);
+       //liquidación de datos 
+       const result2 = await client.db("ferreteria").collection("tipo").deleteOne({ "mat_id" : "00"  });
+        
+    } finally {
+        // Cierre de la conexion con el cluster 
+        await client.close();
+    }
+       
+
+    
+  
+}
+// funcion de seguimiento de la base de datos//
+//////////////////////////////////////////////
+async function monitorListingsUsingStreamAPI(client, timeInMs = 60000, pipeline = []) { 
+    
+    const collection = client.db("ferreteria").collection("cliente");
+    
+    const changeStream = collection.watch(pipeline);
+    
+    changeStream.pipe(
+      new stream.Writable({
+          objectMode: true,
+          write: function (doc, _, cb) {
+              console.log(doc);
+              cb();
+          }
+       })
+);
+    await closeChangeStream(timeInMs, changeStream);
+}
+
+
+main().catch(console.error);
